@@ -1,1 +1,1 @@
-Please refer https://github.com/VijeshPethuram/FEDERATED-LEARNING-BASED-ENSEMBLE-CNN-FOR-NETWORK-INTRUSION-DETECTION/blob/main/FLE_CNN_REPORT_FULL.pdf
+Please refer https://github.com/VijeshPethuram/Federated-Learning-Based-Ensemble-CNN-For-Network-Intrusion-Detection/blob/main/FLE_CNN_REPORT_FULL.pdf
