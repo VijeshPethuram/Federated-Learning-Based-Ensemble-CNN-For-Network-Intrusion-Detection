@@ -1,81 +1,87 @@
-const express=require('express')
-const axios=require('axios')
-const crypto=require('crypto')
+const express = require('express');
+const axios = require('axios');
+const crypto = require('crypto');
 
-const app=express()
-const port=5550
-const traurl="http://localhost:6000"
-const entityid="hospital_server_1"
-let sessionkey=null
+const app = express();
+const PORT = 5550;
+const TRA_URL = "http://localhost:6000";
+const ENTITY_ID = "hospital_server_1";
+let SESSION_KEY = null;
 
-async function registerwithtra() {
+// Registration with TRA
+async function registerWithTRA() {
     try {
-        const response=await axios.post(`${traurl}/register`, {
-            entity_id:entityid,
-            entity_type:"hospital_server"
-        })
-        sessionkey=response.data.session_key
-        console.log("hospital server registered with tra")
+        const response = await axios.post(`${TRA_URL}/register`, {
+            entity_id: ENTITY_ID,
+            entity_type: "hospital_server"
+        });
+        SESSION_KEY = response.data.session_key;
+        console.log("Hospital server registered with TRA");
     } catch (error) {
-        console.error("registration failed:", error.message)
+        console.error("Registration failed:", error.message);
     }
 }
 
-function generateauthheaders() {
-    const nonce=crypto.randomBytes(16).toString('hex')
-    const hmac=crypto.createHmac('sha256', sessionkey)
-                      .update(nonce)
-                      .digest('hex')
+// Generate auth headers
+function generateAuthHeaders() {
+    const nonce = crypto.randomBytes(16).toString('hex');
+    const hmac = crypto.createHmac('sha256', SESSION_KEY)
+                       .update(nonce)
+                       .digest('hex');
     return {
-        "entity-id":entityid,
-        "nonce":nonce,
-        "hmac":hmac
-    }
+        "Entity-ID": ENTITY_ID,
+        "Nonce": nonce,
+        "HMAC": hmac
+    };
 }
+let data = {};
+let intrusion = false;  
 
-let sensorData={}
-let intrusion=false
-
+// 🔹 Store Sensor Data Securely
 app.post('/data', (req, res) => {
-    const {id,bpm}=req.body
+    const { id, bpm } = req.body;
 
-    if(!id||bpm===undefined) {
-        return res.status(400).json({message:'invalid input. please provide id and bpm.'})
+    if (!id || bpm === undefined) {
+        return res.status(400).json({ message: 'Invalid input. Please provide id and bpm.' });
     }
 
-    const timestamp=moment().tz("Asia/Kolkata").format('DD-MM-YYYY HH:mm:ss')
+    const timestamp = moment().tz("Asia/Kolkata").format('DD-MM-YYYY HH:mm:ss');
 
-    if(!sensorData[id]) {
-        sensorData[id]=[]
+    if (!data[id]) {
+        data[id] = [];
     }
 
-    sensorData[id].push({id,timestamp,bpm})
+    data[id].push({ id, timestamp, bpm });
 
-    return res.status(201).json({message:'data added successfully.',d:{id,timestamp,bpm}})
-})
+    return res.status(201).json({ message: 'Data added successfully.', d: { id, timestamp, bpm } });
+});
 
+// 🔹 Handle Intrusion Alerts
 app.post('/error', (req, res) => {
-    console.log("🔴 intrusion detected! alert sent to hospital authorities.")
-    intrusion=true
-    res.status(201).json({message:'system intrusion detected!'})
-})
+    console.log("🔴 Intrusion detected! Alert sent to hospital authorities.");
+    intrusion = true;
+    res.status(201).json({ message: 'System intrusion detected!' });
+});
 
+// 🔹 Retrieve All Sensor Data
 app.get('/data', (req, res) => {
-    return res.status(200).json(sensorData)
-})
+    return res.status(200).json(data);
+});
 
+// 🔹 Retrieve Data for Specific Sensor ID
 app.get('/data/:id', (req, res) => {
-    const {id}=req.params
+    const { id } = req.params;
 
-    if(!sensorData[id]) {
-        return res.status(404).json({message:'data not found.'})
+    if (!data[id]) {
+        return res.status(404).json({ message: 'Data not found.' });
     }
 
-    return res.status(200).json(sensorData[id])
-})
+    return res.status(200).json(data[id]);
+});
 
+// 🔹 Serve Web UI with Chart.js for BPM Data
 app.get('/', (req, res) => {
-    const htmlcontent=`
+    const htmlContent = `
     <!DOCTYPE html>
     <html lang="en">
     <head>
@@ -193,12 +199,13 @@ app.get('/', (req, res) => {
     </html>
     `;
 
-    res.send(htmlcontent);
-})
+    res.send(htmlContent);
+});
 
+// 🔹 Get Intrusion Status
 app.get('/error-status', (req, res) => {
     return res.status(200).json({ intrusion });
-})
+});
 
-registerwithtra();
-app.listen(port, () => console.log(`hospital server running on port ${port}`));
+registerWithTRA();
+app.listen(PORT, () => console.log(`Hospital server running on port ${PORT}`));
